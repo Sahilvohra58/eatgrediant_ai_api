@@ -1,0 +1,150 @@
+Analyze this product image to extract the ingredients list from the back or side of the package.
+
+IMPORTANT: Focus only on the ingredients list section of the product packaging. Look for text that typically appears after labels like:
+- "Ingredients:"
+- "INGREDIENTS:"  
+- "Contains:"
+- "Made with:"
+- Or similar ingredient list indicators
+
+Extract ALL ingredients mentioned in the ingredients list as INDIVIDUAL, SEPARATE items in a Python list. Break down complex ingredient descriptions into individual components:
+
+CRITICAL PARSING RULES - BREAK DOWN ALL COMPLEX INGREDIENTS:
+
+1. **Extract Base Ingredients Only**: For any complex ingredient with sub-ingredients in parentheses, IGNORE the main ingredient name and ONLY list the base ingredients from inside the parentheses.
+
+2. **Remove Percentages**: Completely remove percentage indicators like "(6%)", "(1%)", etc.
+
+3. **Break Down Compound Ingredients**: 
+   - "stabilizers (407, 466, 415, 412)" → "stabilizer 407", "stabilizer 466", "stabilizer 415", "stabilizer 412"
+   - "emulsifier (471)" → "emulsifier 471"
+
+4. **Extract Flavors**: 
+   - "artificial flavouring substances (milk caramel éclair)" → "milk caramel eclair"
+   - "natural vanilla flavor" → "natural vanilla flavor"
+
+5. **Handle Allergen Statements Separately**: 
+   - Extract allergen warnings like "Contains milk", "May contain nuts", "Allergy advice: contains wheat" as separate allergen information
+   - Do NOT include these allergen statements in the ingredients list
+
+6. **Keep Simple Ingredients As-Is**:
+   - "milk solids" → "milk solids"  
+   - "sugar" → "sugar"
+   - "cocoa solids" → "cocoa solids"
+
+Examples of what to extract:
+- Primary ingredients: flour, sugar, oil, water, salt
+- Additives: sodium benzoate, citric acid, natural flavors
+- Vitamins: vitamin C, vitamin E, iron
+- Allergens: milk, wheat, soy, eggs
+- Colors: caramel color, yellow 5, red 40
+- Preservatives: potassium sorbate, calcium propionate
+
+Return the response in this exact JSON format:
+{
+    "ingredients": ["ingredient1", "ingredient2", "ingredient3", ...],
+    "confidence": "high/medium/low",
+    "error": null
+}
+
+If you cannot clearly identify an ingredients list in the image, return:
+{
+    "ingredients": [],
+    "confidence": "low",
+    "error": "Unable to identify ingredients list from image. Please ensure the image shows the back or side of the product with a clear ingredients list."
+}
+
+If the image quality is too poor to read the text clearly, return:
+{
+    "ingredients": [],
+    "confidence": "low", 
+    "error": "Image quality is too low to read ingredients text. Please upload a clearer, higher resolution image."
+}
+
+DETAILED PARSING GUIDELINES WITH EXAMPLES:
+
+**Complex Ingredient Breakdown:**
+- "chocolate ripple (6%) (water, sugar, dextrose, cocoa solids, stabilizer (440))" 
+  ❌ WRONG: Keep as one item
+  ✅ CORRECT: "water", "sugar", "dextrose", "cocoa solids", "stabilizer 440"
+
+- "milk chocolate pieces (1%)"
+  ❌ WRONG: Remove completely  
+  ✅ CORRECT: "milk chocolate pieces"
+
+- "stabilizers (407, 466, 415, 412)"
+  ❌ WRONG: "stabilizers"
+  ✅ CORRECT: "stabilizer 407", "stabilizer 466", "stabilizer 415", "stabilizer 412"
+
+- "artificial flavouring substances (milk caramel éclair)"
+  ❌ WRONG: "artificial flavouring substances"
+  ✅ CORRECT: "milk caramel eclair"
+
+- "emulsifier (471)"
+  ❌ WRONG: "emulsifier"
+  ✅ CORRECT: "emulsifier 471"
+
+- "colour (150d)"
+  ❌ WRONG: "colour"
+  ✅ CORRECT: "colour 150d"
+
+**What NOT to Include:**
+- Percentages like "(6%)", "(1%)" → REMOVE
+- Processing information or directions → IGNORE
+
+**COMPLETE EXAMPLE TRANSFORMATION:**
+
+Input ingredients list:
+1. Milk solids
+2. sugar  
+3. cocoa solids
+4. chocolate ripple (6%) (water, sugar, dextrose, cocoa solids, stabilizer (440))
+5. milk chocolate pieces (1%)
+6. emulsifier (471)
+7. stabilizers (407, 466, 415, 412) 
+8. artificial flavouring substances (milk caramel éclair)
+9. colour (150d)
+10. Contains milk
+
+Expected JSON output:
+{
+  "ingredients": [
+    "milk solids",
+    "sugar", 
+    "cocoa solids",
+    "water",
+    "sugar",
+    "dextrose", 
+    "cocoa solids",
+    "stabilizer 440",
+    "milk chocolate pieces",
+    "emulsifier 471",
+    "stabilizer 407",
+    "stabilizer 466", 
+    "stabilizer 415",
+    "stabilizer 412",
+    "colour 150d",
+    "milk caramel eclair"
+  ],
+  "allergens": [
+    "milk"
+  ],
+  "confidence": "high",
+  "error": null
+}
+
+**ALLERGEN EXTRACTION RULES:**
+
+Look for allergen information in or near the ingredients list. Common formats include:
+- "Contains: milk, soy, wheat"
+- "Allergy advice: contains nuts"  
+- "May contain traces of peanuts"
+- Bold/highlighted ingredients (often indicate allergens)
+- "Allergens: see ingredients in bold"
+
+Extract ONLY the allergen names (e.g., "milk", "soy", "wheat", "nuts", "peanuts", "eggs", "fish", "shellfish", etc.)
+Do NOT include phrases like "Contains" or "May contain" - just the allergen names.
+
+If no allergens are mentioned, return an empty array: "allergens": []
+
+Only return the JSON response, nothing else.
