@@ -1,20 +1,48 @@
 # EatGrediant AI API
 
-A simple FastAPI Hello World application designed for deployment on Google Cloud Run.
+A FastAPI application with Gemini AI product analysis capabilities designed for deployment on Google Cloud Run.
 
 ## Features
 
 - FastAPI web framework
+- Gemini AI integration for product analysis
+- Image processing and analysis
+- Google Cloud Storage integration
 - Health check endpoint for Cloud Run
-- Application info endpoint
+- Comprehensive API documentation
 - Docker containerized for easy deployment
 - Production-ready configuration
 
 ## Endpoints
 
+### GET Endpoints
 - `GET /` - Hello World message
-- `GET /health` - Health check endpoint
-- `GET /info` - Application information
+- `GET /health` - Health check endpoint for Cloud Run
+- `GET /info` - Complete API information and endpoint documentation
+
+### POST Endpoints (Image Analysis)
+- `POST /get-product-name` - Extract product name and brand from food product image
+  - Parameters: `file` (UploadFile), `bar_code` (str)
+  - Returns: Product name, brand, confidence level
+  
+- `POST /get-ingredients` - Extract ingredients list from product image
+  - Parameters: `file` (UploadFile), `bar_code` (str)
+  - Returns: Ingredients list, allergens, confidence level
+  
+- `POST /get-nutrition` - Extract nutritional information from nutrition label
+  - Parameters: `file` (UploadFile), `bar_code` (str)
+  - Returns: Nutrition facts, additional nutrients, allergens, dietary claims
+  
+- `POST /get-weight` - Extract weight/quantity information from product image
+  - Parameters: `file` (UploadFile), `bar_code` (str)
+  - Returns: Net weight, package count, serving info, weight unit
+
+### Common Features
+- All POST endpoints accept image files and automatically upload to Google Cloud Storage
+- Asynchronous image analysis with immediate response
+- Comprehensive error handling with detailed error messages
+- Image validation and content type checking
+- Detailed logging for debugging and monitoring
 
 ## Local Development
 
