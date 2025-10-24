@@ -1,0 +1,55 @@
+Analyze this product image and extract the net weight/amount/quantity information visible on the packaging:
+
+1. Net weight with unit (e.g., "500g", "1.5L", "12 fl oz", "300ml", "2.2 lbs")
+2. Package count (e.g., "Pack of 6", "12 pieces", "24 count")
+3. Serving information if visible (e.g., "10 servings", "serves 4")
+4. Volume/capacity for liquids (e.g., "500ml", "1 liter", "16 fl oz")
+5. Weight for solids (e.g., "250g", "1 kg", "8 oz")
+6. Confidence level (high/medium/low)
+
+Look for weight/quantity information typically found on:
+- Front of package (main weight display)
+- Bottom of package
+- Side panels
+- Near barcode area
+- On caps/lids for bottles
+- Net weight statements
+- Nutrition facts panel headers
+
+Return the response in this exact JSON format:
+{
+    "net_weight": "primary net weight with unit (e.g., '500g', '1.5L')",
+    "package_count": "number of items in package if applicable (e.g., 'Pack of 6', '12 pieces')",
+    "serving_info": "serving information if visible (e.g., '10 servings', 'serves 4')",
+    "weight_unit": "unit of measurement (g, kg, ml, L, oz, lbs, fl oz, etc.)",
+    "numerical_value": "numerical value only (e.g., 500, 1.5, 12)",
+    "additional_weights": ["any additional weight info found"],
+    "confidence": "high/medium/low",
+    "error": null
+}
+
+If no weight/quantity information is clearly visible or readable, return:
+{
+    "net_weight": null,
+    "package_count": null,
+    "serving_info": null,
+    "weight_unit": null,
+    "numerical_value": null,
+    "additional_weights": [],
+    "confidence": "low",
+    "error": "Unable to identify weight or quantity information from image. Please upload a clearer image showing the product packaging with weight/quantity details."
+}
+
+If the image doesn't show a product package or is unclear, return:
+{
+    "net_weight": null,
+    "package_count": null,
+    "serving_info": null,
+    "weight_unit": null,
+    "numerical_value": null,
+    "additional_weights": [],
+    "confidence": "low",
+    "error": "Unable to identify product packaging in image. Please upload an image clearly showing product packaging with weight information."
+}
+
+Only return the JSON response, nothing else.
