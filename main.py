@@ -6,7 +6,7 @@ import asyncio
 import vertexai
 import vertexai.generative_models as genai
 import logging
-from utils import validate_image, analyze_product_with_gemini, upload_image_to_gcs, analyze_ingredients_with_gemini, upload_ingredient_image_to_gcs, analyze_nutrition_with_gemini, upload_nutrition_image_to_gcs
+from utils import validate_image, analyze_product_with_gemini, upload_image_to_gcs, analyze_ingredients_with_gemini, upload_ingredient_image_to_gcs, analyze_nutrition_with_gemini, upload_nutrition_image_to_gcs, analyze_weight_with_gemini, upload_weight_image_to_gcs
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -59,18 +59,115 @@ async def health_check():
 
 @app.get("/info")
 async def app_info():
-    """Return application information"""
+    """Return application information with detailed endpoint documentation"""
     return {
         "app_name": "EatGrediant AI API",
         "version": "2.0.0",
         "description": "FastAPI application with Gemini AI product analysis deployed on Google Cloud Run",
         "endpoints": {
-            "/": "Hello World",
-            "/health": "Health check",
-            "/info": "API information",
-            "/get-product-name": "Get product name and brand from FOOD product image with barcode (POST)",
-            "/get-ingredients": "Extract ingredients list from product image with barcode (POST)",
-            "/get-nutrition": "Extract nutritional information from product nutrition label with barcode (POST)"
+            "/": {
+                "method": "GET",
+                "description": "Hello World endpoint",
+                "parameters": "None",
+                "response": "Welcome message"
+            },
+            "/health": {
+                "method": "GET", 
+                "description": "Health check endpoint for Cloud Run",
+                "parameters": "None",
+                "response": "API health status"
+            },
+            "/info": {
+                "method": "GET",
+                "description": "API information and endpoint documentation",
+                "parameters": "None", 
+                "response": "Complete API documentation"
+            },
+            "/get-product-name": {
+                "method": "POST",
+                "description": "Get product name and brand from FOOD product image using Gemini AI",
+                "parameters": {
+                    "file": "UploadFile (required) - Food product image file",
+                    "bar_code": "str (required) - Unique barcode identifier for the product"
+                },
+                "response": {
+                    "success": "boolean",
+                    "message": "string",
+                    "data": {
+                        "product_name": "string",
+                        "brand": "string", 
+                        "confidence": "string"
+                    }
+                },
+                "notes": "Only accepts food and beverage products. Returns 400 error for non-food products."
+            },
+            "/get-ingredients": {
+                "method": "POST",
+                "description": "Extract ingredients list from product image using Gemini AI",
+                "parameters": {
+                    "file": "UploadFile (required) - Product image file showing ingredients list",
+                    "bar_code": "str (required) - Unique barcode identifier for the product"
+                },
+                "response": {
+                    "success": "boolean",
+                    "message": "string",
+                    "data": {
+                        "ingredients": "list",
+                        "allergens": "list",
+                        "confidence": "string"
+                    }
+                },
+                "notes": "Analyzes ingredients list from back or side of product packaging."
+            },
+            "/get-nutrition": {
+                "method": "POST",
+                "description": "Extract nutritional information from product nutrition label using Gemini AI",
+                "parameters": {
+                    "file": "UploadFile (required) - Product image file showing nutrition facts label",
+                    "bar_code": "str (required) - Unique barcode identifier for the product"
+                },
+                "response": {
+                    "success": "boolean",
+                    "message": "string",
+                    "data": {
+                        "nutrition_facts": "object",
+                        "additional_nutrients": "list",
+                        "allergens": "list",
+                        "dietary_claims": "list",
+                        "confidence": "string"
+                    }
+                },
+                "notes": "Analyzes nutrition facts panel and additional nutritional information."
+            },
+            "/get-weight": {
+                "method": "POST",
+                "description": "Extract net weight/amount/quantity information from product image using Gemini AI",
+                "parameters": {
+                    "file": "UploadFile (required) - Product image file showing weight/quantity information",
+                    "bar_code": "str (required) - Unique barcode identifier for the product"
+                },
+                "response": {
+                    "success": "boolean",
+                    "message": "string",
+                    "data": {
+                        "net_weight": "string",
+                        "package_count": "string",
+                        "serving_info": "string",
+                        "weight_unit": "string",
+                        "numerical_value": "string",
+                        "additional_weights": "list",
+                        "confidence": "string"
+                    }
+                },
+                "notes": "Analyzes product packaging to extract weight, quantity, and serving information."
+            }
+        },
+        "common_features": {
+            "image_upload": "All POST endpoints accept image files and automatically upload to GCS",
+            "async_processing": "Image analysis happens asynchronously with immediate response",
+            "error_handling": "Comprehensive error handling with detailed error messages",
+            "validation": "Image validation and content type checking",
+            "logging": "Detailed logging for debugging and monitoring"
         }
     }
 
@@ -332,6 +429,95 @@ async def get_nutrition(
         raise e
     except Exception as e:
         logger.error(f"Unexpected error in get_nutrition: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.post("/get-weight")
+async def get_weight(
+    file: UploadFile = File(...),
+    bar_code: str = Form(...)
+):
+    """
+    Extract net weight/amount/quantity information from product image using Gemini AI
+    
+    This endpoint analyzes product packaging to extract weight, quantity, and serving information.
+    Upload an image showing the product packaging where weight/quantity details are visible.
+    
+    Parameters:
+    - file: Product image file showing weight/quantity information
+    - bar_code: Unique barcode identifier for the product
+    
+    Returns:
+    - Net weight with unit (e.g., "500g", "1.5L", "12 fl oz")
+    - Package count if applicable (e.g., "Pack of 6", "12 pieces")
+    - Serving information if visible (e.g., "10 servings", "serves 4")
+    - Weight unit and numerical value separately
+    - Additional weight information found
+    - Confidence level of the extraction
+    - Error message if analysis fails
+    
+    After successful analysis, the image is asynchronously uploaded to GCS bucket
+    organized by bar_code folder with filename: weight_{timestamp}.{extension}
+    """
+    try:
+        logger.info(f"Received weight file: {file.filename}, Content-Type: {file.content_type}, Bar Code: {bar_code}")
+        
+        # Store file information for later GCS upload
+        original_filename = file.filename
+        original_content_type = file.content_type
+        
+        # Validate the uploaded image
+        image_data = await validate_image(file)
+        
+        # Analyze weight with Gemini
+        result = await analyze_weight_with_gemini(image_data, model)
+        
+        # Check if analysis was successful
+        if result.get("error"):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "message": result["error"],
+                    "data": None
+                }
+            )
+        
+        # Create background task for GCS upload (fire-and-forget)
+        # This runs asynchronously after the response is returned
+        asyncio.create_task(
+            upload_weight_image_to_gcs(
+                image_data=image_data,
+                filename=original_filename or "unknown.jpg",
+                content_type=original_content_type or "image/jpeg",
+                bar_code=bar_code
+            )
+        )
+        
+        logger.info(f"Started background GCS upload task for weight file: {original_filename}")
+        
+        # Return successful analysis immediately
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Weight analysis completed successfully",
+                "data": {
+                    "net_weight": result["net_weight"],
+                    "package_count": result["package_count"],
+                    "serving_info": result["serving_info"],
+                    "weight_unit": result["weight_unit"],
+                    "numerical_value": result["numerical_value"],
+                    "additional_weights": result["additional_weights"],
+                    "confidence": result["confidence"]
+                }
+            }
+        )
+        
+    except HTTPException as e:
+        logger.error(f"HTTP Exception in get_weight: {str(e)}")
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error in get_weight: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 if __name__ == "__main__":
