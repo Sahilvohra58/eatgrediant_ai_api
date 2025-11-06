@@ -2,7 +2,7 @@
   "bar_code": "00000000000000",
   "product_analysis": {
     "brand": "Amul",
-    "product_name": "Cookies N Cream Gold"
+    "product_name": "Cookies n Cream Gold"
   },
   "ingredients_analysis": {
     "ingredients": [
@@ -31,7 +31,7 @@
     "nutrition_facts": {
       "serving_size": "100 mL (55 g)",
       "servings_per_container": 10,
-      "amount_per": "per 100 g",
+      "amount_per": "per 100g",
       "calories": {
         "value": 228,
         "unit": "kcal"
@@ -78,8 +78,17 @@
       }
     },
     "allergens": [
-      "Milk"
+      "Milk solids"
     ]
   },
-  "weight_analysis": {}
+  "weight_analysis": {
+    "net_weight": "1 L",
+    "package_count": null,
+    "serving_info": "10 servings per container, Serving size 100 mL (55 g)",
+    "weight_unit": "L",
+    "numerical_value": 1,
+    "additional_weights": [
+      "553 g"
+    ]
+  }
 }

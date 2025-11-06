@@ -29,7 +29,7 @@ from pathlib import Path
 
 # Default URLs
 LOCAL_API_URL = "http://localhost:8000"
-CLOUD_API_URL = "https://eatgrediant-ai-api-tc5cvwjylq-uc.a.run.app"
+CLOUD_API_URL = "https://eatgrediant-ai-api-612068620881.us-central1.run.app"
 
 # Allow override via environment variables
 LOCAL_API_URL = os.getenv("LOCAL_API_URL", LOCAL_API_URL)
@@ -659,7 +659,7 @@ def test_nutrition_with_default_image():
 def test_weight_with_default_image():
     """Test weight endpoint with default Amul ice cream front image (as it shows weight info)"""
     script_dir = Path(__file__).parent
-    weight_image = script_dir / "test_data" / "front_amul_icecream.jpg"
+    weight_image = script_dir / "test_data" / "nutrition_amul_icecream.jpg"
     
     print("⚖️  Testing Weight Extraction with default image")
     print("-" * 50)
